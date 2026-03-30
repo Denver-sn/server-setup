@@ -24,6 +24,7 @@ curl -sSL https://raw.githubusercontent.com/Denver-sn/server-setup/main/install.
 |---|---|
 | `system` | Update systeme, paquets essentiels (curl, wget, git, htop, btop, jq, etc.) |
 | `security` | UFW (firewall), fail2ban, SSH hardening |
+| `hardening` | Hardening VPS : auto-updates, sysctl, swap, audit, user sudo, banniere SSH |
 | `shell` | Zsh + Oh My Zsh + plugins (autosuggestions, syntax-highlighting) + Tmux |
 | `docker` | Docker CE + Docker Compose plugin |
 | `node` | NVM + Node.js LTS + pnpm + yarn |
@@ -44,6 +45,7 @@ server-setup/
 │   ├── common.sh       # Fonctions partagees
 │   ├── system.sh
 │   ├── security.sh
+│   ├── hardening.sh
 │   ├── shell.sh
 │   ├── docker.sh
 │   ├── node.sh
@@ -73,6 +75,7 @@ sudo bash setup.sh
 
 - Chaque script est **idempotent** : il verifie si l'outil est deja installe avant d'agir
 - Les dotfiles existants sont **backup** en `.bak` avant d'etre remplaces
-- SSH hardening desactive le password auth — verifie que ta cle SSH est bien en place
+- SSH hardening desactive le password auth seulement si une cle SSH est detectee
+- Le hardening VPS configure le sysctl, swap, audit logs, et mises a jour auto de securite
 - Dokploy necessite Docker (installe Docker d'abord)
 - Reconnecte-toi apres l'install pour appliquer les changements shell (zsh)
