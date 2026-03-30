@@ -14,6 +14,10 @@ source "$SCRIPT_DIR/common.sh"
 require_root
 log_section "Firewall avancé"
 
+# Lire le port SSH (défini par security.sh)
+SSH_PORT=22
+[[ -f /etc/server-setup-ssh-port ]] && SSH_PORT=$(cat /etc/server-setup-ssh-port)
+
 # ============================================================
 # 1. UFW : reset propre + règles de base
 # ============================================================
@@ -40,7 +44,11 @@ setup_ufw_rules() {
     log_info "Configuration des règles de ports..."
 
     # SSH avec rate limiting (6 connexions en 30s = ban)
-    ufw limit ssh comment 'SSH rate-limited' > /dev/null
+    if (( SSH_PORT == 22 )); then
+        ufw limit ssh comment 'SSH rate-limited' > /dev/null
+    else
+        ufw limit "${SSH_PORT}/tcp" comment 'SSH rate-limited' > /dev/null
+    fi
 
     # HTTP/HTTPS
     ufw allow 80/tcp comment 'HTTP' > /dev/null
@@ -188,13 +196,21 @@ setup_rate_limiting() {
     UFW_BEFORE="/etc/ufw/before.rules"
 
     if ! grep -q 'RATE-LIMIT' "$UFW_BEFORE" 2>/dev/null; then
-        sed -i '/^COMMIT$/i \
-# BEGIN RATE-LIMIT\
--A ufw-before-input -p tcp --dport 22 -m state --state NEW -m recent --set --name SSH\
--A ufw-before-input -p tcp --dport 22 -m state --state NEW -m recent --update --seconds 60 --hitcount 4 --name SSH -j DROP\
--A ufw-before-input -p tcp -m multiport --dports 80,443 -m state --state NEW -m recent --set --name HTTP\
--A ufw-before-input -p tcp -m multiport --dports 80,443 -m state --state NEW -m recent --update --seconds 1 --hitcount 20 --name HTTP -j DROP\
-# END RATE-LIMIT' "$UFW_BEFORE"
+        # Insérer les règles avant le premier COMMIT
+        TMPFILE=$(mktemp)
+        awk -v ssh_port="$SSH_PORT" '
+        /^COMMIT$/ && !done {
+            print "# BEGIN RATE-LIMIT"
+            print "-A ufw-before-input -p tcp --dport " ssh_port " -m state --state NEW -m recent --set --name SSH"
+            print "-A ufw-before-input -p tcp --dport " ssh_port " -m state --state NEW -m recent --update --seconds 60 --hitcount 4 --name SSH -j DROP"
+            print "-A ufw-before-input -p tcp -m multiport --dports 80,443 -m state --state NEW -m recent --set --name HTTP"
+            print "-A ufw-before-input -p tcp -m multiport --dports 80,443 -m state --state NEW -m recent --update --seconds 1 --hitcount 20 --name HTTP -j DROP"
+            print "# END RATE-LIMIT"
+            done=1
+        }
+        { print }
+        ' "$UFW_BEFORE" > "$TMPFILE"
+        mv "$TMPFILE" "$UFW_BEFORE"
 
         log_success "Rate limiting configuré (SSH: 4/min, HTTP: 20/sec)"
     else
@@ -352,7 +368,7 @@ show_status
 log_section "Firewall configuré"
 echo -e "${GREEN}Résumé :${NC}"
 echo "  - UFW : deny incoming / allow outgoing / deny routed"
-echo "  - SSH : rate-limited (4 new conn/min max)"
+echo "  - SSH port $SSH_PORT : rate-limited (4 new conn/min max)"
 echo "  - HTTP/HTTPS : ouverts avec rate limit (20 conn/sec)"
 echo "  - Docker : ne bypass plus UFW (iptables: false)"
 echo "  - Anti-portscan : NULL, XMAS, SYN/RST, fragments bloqués"
