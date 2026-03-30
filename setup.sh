@@ -18,7 +18,8 @@ source "$SCRIPT_DIR/scripts/common.sh"
 
 MODULES=(
     "system       | Mise a jour systeme + paquets essentiels"
-    "security     | UFW, fail2ban, SSH hardening"
+    "security     | Fail2ban, SSH hardening, crypto"
+    "firewall     | UFW avance, fix Docker bypass, anti-portscan, rate limit"
     "hardening    | Hardening VPS (sysctl, swap, audit, auto-updates)"
     "shell        | Zsh + Oh My Zsh + Tmux"
     "docker       | Docker + Docker Compose"
@@ -74,7 +75,7 @@ run_module() {
 run_all() {
     log_section "Installation complete - ALL IN ONE"
 
-    local order=(system security hardening shell docker node python go k8s-tools terraform dokploy dotfiles)
+    local order=(system security firewall hardening shell docker node python go k8s-tools terraform dokploy dotfiles)
 
     for mod in "${order[@]}"; do
         run_module "$mod" || log_warn "Module '$mod' a échoué, on continue..."

@@ -23,7 +23,8 @@ curl -sSL https://raw.githubusercontent.com/Denver-sn/server-setup/main/install.
 | Module | Description |
 |---|---|
 | `system` | Update systeme, paquets essentiels (curl, wget, git, htop, btop, jq, etc.) |
-| `security` | UFW (firewall), fail2ban, SSH hardening |
+| `security` | Fail2ban (SSH, DDoS, Nginx), SSH hardening, crypto hardening |
+| `firewall` | UFW avance, fix Docker bypass UFW, anti-portscan, rate limiting, ICMP protection, helper ufw-docker |
 | `hardening` | Hardening VPS : auto-updates, sysctl, swap, audit, user sudo, banniere SSH |
 | `shell` | Zsh + Oh My Zsh + plugins (autosuggestions, syntax-highlighting) + Tmux |
 | `docker` | Docker CE + Docker Compose plugin |
@@ -45,6 +46,7 @@ server-setup/
 │   ├── common.sh       # Fonctions partagees
 │   ├── system.sh
 │   ├── security.sh
+│   ├── firewall.sh
 │   ├── hardening.sh
 │   ├── shell.sh
 │   ├── docker.sh
@@ -76,6 +78,8 @@ sudo bash setup.sh
 - Chaque script est **idempotent** : il verifie si l'outil est deja installe avant d'agir
 - Les dotfiles existants sont **backup** en `.bak` avant d'etre remplaces
 - SSH hardening desactive le password auth seulement si une cle SSH est detectee
+- **Docker bypass UFW par defaut** : le module `firewall` corrige ca (critique!)
 - Le hardening VPS configure le sysctl, swap, audit logs, et mises a jour auto de securite
+- Helper `ufw-docker` installe pour gerer les ports Docker via UFW facilement
 - Dokploy necessite Docker (installe Docker d'abord)
 - Reconnecte-toi apres l'install pour appliquer les changements shell (zsh)
